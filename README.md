@@ -6,8 +6,6 @@
 > 🏆 Built for **IEEE Day 2026 · Vibe Coding**
 > 📌 Problem Statement 02: *AI-Powered IT Ticket Classification & Resolution System*
 
-🔗 **Live demo:** https://9050poojaap-cmyk.github.io/kural/
-
 ---
 
 ## 😩 The problem
