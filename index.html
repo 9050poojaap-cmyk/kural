@@ -1,0 +1,586 @@
+<title>Kural Helpdesk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: app shell — slim sidebar + one working canvas; chat-first for employees, queue + detail for IT. */
+:root{
+  --bg:#0A0D1A; --panel:#11152A; --panel2:#171C36; --line:#252B4D; --line2:#323a66;
+  --fg:#ECEEFA; --muted:#9AA1C4; --dim:#6B7299;
+  --cyan:#22D3EE; --violet:#8B5CF6; --pink:#EC4899; --amber:#F5B85A;
+  --p1:#FB7185; --p2:#FB923C; --p3:#60A5FA; --p4:#94A3B8;
+  --ok:#34D399; --warn:#FBBF24;
+  --display:'Sora',system-ui,sans-serif; --body:'Manrope',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.mono{font-family:var(--mono)}
+.grad-text{background:linear-gradient(90deg,var(--cyan),var(--violet) 60%,var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* ---------- login ---------- */
+#login{min-height:100%;display:flex;align-items:center;justify-content:center;padding:40px 16px;position:relative;overflow:hidden}
+.aurora{position:absolute;inset:-20%;pointer-events:none;background:
+  radial-gradient(40% 35% at 25% 30%,rgba(34,211,238,.16),transparent 70%),
+  radial-gradient(40% 40% at 75% 25%,rgba(139,92,246,.20),transparent 70%),
+  radial-gradient(35% 35% at 60% 80%,rgba(236,72,153,.12),transparent 70%);
+  animation:drift 18s ease-in-out infinite alternate}
+@keyframes drift{to{transform:translate(3%,-2%) scale(1.05)}}
+.login-card{position:relative;width:min(980px,100%);display:grid;gap:36px}
+.brand{display:flex;align-items:center;gap:12px}
+.wave{display:flex;align-items:center;gap:3px;height:28px}
+.wave i{display:block;width:4px;border-radius:3px;background:linear-gradient(var(--cyan),var(--violet))}
+.wave i:nth-child(1){height:10px}.wave i:nth-child(2){height:20px}.wave i:nth-child(3){height:28px}.wave i:nth-child(4){height:16px}.wave i:nth-child(5){height:8px;background:var(--pink)}
+.brand b{font-family:var(--display);font-size:22px;letter-spacing:-.02em}
+.hero h1{font-family:var(--display);font-size:clamp(34px,6vw,60px);line-height:1.05;letter-spacing:-.03em;margin:14px 0 12px;text-wrap:balance}
+.hero p{color:var(--muted);font-size:17px;max-width:58ch;margin:0}
+.tamil{color:var(--amber);font-family:var(--mono);font-size:13px;letter-spacing:.08em}
+.roles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.role h3{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;margin:0 0 10px;font-weight:500}
+.ucard{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:10px;transition:border-color .15s,transform .15s,background .15s}
+.ucard:hover{border-color:var(--violet);background:rgba(139,92,246,.08);transform:translateY(-1px)}
+.av{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-weight:700;font-size:14px;color:#0A0D1A}
+.ucard small{display:block;color:var(--muted);font-size:13px}
+.demo-note{color:var(--dim);font-size:13px}
+
+/* ---------- shell ---------- */
+#app{display:flex;height:100%}
+.side{width:248px;flex:none;border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;padding:20px 14px;gap:22px}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav button{display:flex;align-items:center;gap:12px;background:none;border:0;border-radius:12px;padding:10px 12px;color:var(--muted);font-weight:600;text-align:left}
+.nav button:hover{background:var(--panel2);color:var(--fg)}
+.nav button.on{background:linear-gradient(90deg,rgba(34,211,238,.12),rgba(139,92,246,.12));color:var(--fg);box-shadow:inset 2px 0 0 var(--cyan)}
+.nav svg{width:18px;height:18px;flex:none}
+.me{margin-top:auto;border-top:1px solid var(--line);padding-top:16px;display:flex;align-items:center;gap:10px}
+.me div{flex:1;min-width:0}
+.me small{display:block;color:var(--muted);font-size:12px}
+.ghost{background:none;border:1px solid var(--line2);border-radius:10px;padding:6px 10px;color:var(--muted);font-size:12px;font-weight:600}
+.ghost:hover{color:var(--fg);border-color:var(--violet)}
+main{flex:1;min-width:0;display:flex;flex-direction:column;height:100%;overflow:hidden}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 28px;border-bottom:1px solid var(--line)}
+.top h2{font-family:var(--display);font-size:20px;margin:0;letter-spacing:-.01em}
+.mode{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--dim);border:1px solid var(--line);border-radius:99px;padding:4px 10px;white-space:nowrap}
+.mode.live{color:var(--ok);border-color:rgba(52,211,153,.35)}
+.view{flex:1;overflow:auto;padding:24px 28px}
+.bottomnav{display:none}
+
+/* ---------- chat ---------- */
+#v-help{display:flex;flex-direction:column;padding:0}
+.chat{flex:1;overflow:auto;padding:28px;display:flex;flex-direction:column;gap:18px;position:relative}
+.empty{margin:auto;text-align:center;max-width:640px;display:grid;gap:18px;padding:30px 0;position:relative}
+.empty h3{font-family:var(--display);font-size:clamp(24px,4vw,34px);margin:0;letter-spacing:-.02em;text-wrap:balance}
+.empty p{color:var(--muted);margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.chip{border:1px solid var(--line2);background:rgba(255,255,255,.03);border-radius:99px;padding:8px 14px;font-weight:600;font-size:14px;color:var(--fg);transition:border-color .15s,background .15s}
+.chip:hover{border-color:var(--cyan);background:rgba(34,211,238,.08)}
+.msg{max-width:min(720px,92%);animation:in .25s ease-out}
+@keyframes in{from{opacity:.4;transform:translateY(6px)}to{opacity:1;transform:none}}
+.msg.user{align-self:flex-end;background:linear-gradient(135deg,#1E2550,#2A1F55);border:1px solid var(--line2);border-radius:18px 18px 4px 18px;padding:12px 16px}
+.msg.user img{display:block;max-height:160px;border-radius:10px;margin-top:8px}
+.msg.user .tr{color:var(--muted);font-size:13px;margin-top:6px;border-top:1px dashed var(--line2);padding-top:6px}
+.bot{align-self:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:4px 18px 18px 18px;padding:18px 20px;display:grid;gap:14px;width:min(720px,100%)}
+.bot .lead{font-size:16px;margin:0}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:12px;font-weight:700;border-radius:99px;padding:4px 10px;border:1px solid var(--line2);color:var(--muted);white-space:nowrap}
+.pri{color:#0A0D1A;border:0}
+.pri.P1{background:var(--p1)}.pri.P2{background:var(--p2)}.pri.P3{background:var(--p3)}.pri.P4{background:var(--p4)}
+.emo-calm{color:var(--ok);border-color:rgba(52,211,153,.4)}
+.emo-confused{color:var(--warn);border-color:rgba(251,191,36,.4)}
+.emo-anxious{color:var(--p2);border-color:rgba(251,146,60,.4)}
+.emo-frustrated{color:#FF8A65;border-color:rgba(255,138,101,.45)}
+.emo-angry{color:var(--p1);border-color:rgba(251,113,133,.45)}
+.urg{color:var(--amber);border-color:rgba(245,184,90,.4)}
+.steps{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.steps label{display:flex;gap:10px;align-items:flex-start;background:var(--panel2);border-radius:12px;padding:10px 12px;cursor:pointer}
+.steps input{margin-top:3px;accent-color:var(--cyan)}
+.steps input:checked+span{color:var(--dim);text-decoration:line-through}
+.saw{font-size:13px;color:var(--muted);background:rgba(34,211,238,.06);border:1px solid rgba(34,211,238,.2);border-radius:12px;padding:10px 12px}
+.saw b{color:var(--cyan)}
+.acts{display:flex;flex-wrap:wrap;gap:10px}
+.btn{border:0;border-radius:12px;padding:10px 16px;font-weight:700}
+.btn.pri-btn{background:linear-gradient(90deg,var(--cyan),var(--violet));color:#0A0D1A}
+.btn.sec{background:var(--panel2);border:1px solid var(--line2);color:var(--fg)}
+.btn:disabled{opacity:.5;cursor:default}
+.done{border-radius:14px;padding:14px 16px;font-weight:600}
+.done.ok{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.35);color:var(--ok)}
+.done.tk{background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.4)}
+.done.tk small{display:block;color:var(--muted);font-weight:500}
+.think{align-self:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:4px 18px 18px 18px;padding:16px 20px;display:grid;gap:8px;min-width:260px}
+.think div{display:flex;align-items:center;gap:10px;color:var(--dim);font-size:14px;transition:color .2s}
+.think div.on{color:var(--fg)}.think div.ok{color:var(--ok)}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+.think div.on .dot{animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.25}}
+.composer{border-top:1px solid var(--line);padding:14px 28px 18px;background:var(--bg)}
+.attach-prev{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.attach-prev img{height:54px;border-radius:8px;border:1px solid var(--line2)}
+.bar{display:flex;align-items:flex-end;gap:8px;background:var(--panel);border:1px solid var(--line2);border-radius:18px;padding:8px}
+.bar:focus-within{border-color:var(--violet)}
+.bar textarea{flex:1;min-width:0;background:none;border:0;resize:none;outline:none;padding:9px 6px;max-height:140px;font-size:15px}
+.ib{flex:none;width:40px;height:40px;border-radius:12px;border:0;background:var(--panel2);color:var(--muted);display:grid;place-items:center}
+.ib:hover{color:var(--fg)}
+.ib svg{width:19px;height:19px}
+.ib.rec{background:var(--p1);color:#0A0D1A;animation:pulse 1.2s infinite}
+.ib.send{background:linear-gradient(135deg,var(--cyan),var(--violet));color:#0A0D1A}
+.lang{background:var(--panel2);border:0;border-radius:10px;height:40px;padding:0 8px;color:var(--muted);font-size:13px}
+.hint{color:var(--dim);font-size:12px;margin-top:8px}
+
+/* ---------- lists ---------- */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.stat small{color:var(--muted);font-size:12px;font-weight:600}
+.stat b{display:block;font-family:var(--display);font-size:28px;font-variant-numeric:tabular-nums}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:18px;align-items:start}
+.list{display:grid;gap:10px}
+.row{display:grid;gap:8px;text-align:left;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px;transition:border-color .15s}
+.row:hover,.row.sel{border-color:var(--violet)}
+.row .r1{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.row .t{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .id{font-family:var(--mono);font-size:12px;color:var(--dim)}
+.status{font-size:12px;font-weight:700;border-radius:99px;padding:3px 10px;white-space:nowrap}
+.s-Open{background:rgba(96,165,250,.14);color:var(--p3)}
+.s-InProgress{background:rgba(251,191,36,.14);color:var(--warn)}
+.s-Resolved,.s-Selfresolved{background:rgba(52,211,153,.14);color:var(--ok)}
+.detail{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;display:grid;gap:16px;position:sticky;top:0}
+.detail h3{font-family:var(--display);margin:0;font-size:20px}
+.kv{display:grid;gap:4px}
+.kv small{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--dim);text-transform:uppercase}
+.kv p{margin:0}
+.detail img{max-width:100%;border-radius:12px;border:1px solid var(--line2)}
+.replies{display:grid;gap:8px}
+.reply{background:var(--panel2);border-radius:12px;padding:10px 12px;font-size:14px}
+.reply b{color:var(--cyan);font-size:12px}
+.field{width:100%;background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:10px 12px;resize:vertical;min-height:70px}
+.muted{color:var(--muted)}
+.blank{text-align:center;color:var(--muted);padding:50px 20px;border:1px dashed var(--line2);border-radius:18px}
+.back{display:none}
+
+/* radar */
+.radar-wrap{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:22px;align-items:start}
+.scope{aspect-ratio:1;max-width:100%;border-radius:50%;position:relative;background:
+  radial-gradient(circle,rgba(34,211,238,.08) 0 1px,transparent 1px) 0 0/22px 22px,
+  radial-gradient(circle at center,#101a33 0%,#0A0D1A 70%);border:1px solid var(--line2);overflow:hidden}
+.scope::before,.scope::after{content:"";position:absolute;inset:16%;border:1px solid rgba(34,211,238,.18);border-radius:50%}
+.scope::after{inset:33%}
+.sweep{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,rgba(34,211,238,.35),transparent 18%);animation:spin 4s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.blip{position:absolute;border-radius:50%;transform:translate(-50%,-50%);display:grid;place-items:center;font-weight:800;font-size:12px;color:#0A0D1A}
+.alert{background:linear-gradient(90deg,rgba(251,113,133,.16),rgba(251,113,133,.05));border:1px solid rgba(251,113,133,.5);border-radius:18px;padding:18px 20px;display:grid;gap:10px;animation:glow 1.6s ease-in-out infinite}
+@keyframes glow{50%{box-shadow:0 0 0 6px rgba(251,113,133,.08)}}
+.alert h3{margin:0;font-family:var(--display);font-size:19px}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line2);border-radius:14px;padding:12px 18px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.4);z-index:50;max-width:calc(100% - 32px)}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:60}
+
+@media (max-width:860px){
+  .roles{grid-template-columns:1fr}
+  .side{display:none}
+  .top{padding:14px 16px}
+  .view{padding:16px}
+  .chat{padding:16px}
+  .composer{padding:10px 16px calc(10px + 64px + env(safe-area-inset-bottom,0px))}
+  .view:not(#v-help){padding-bottom:calc(90px + env(safe-area-inset-bottom,0px))}
+  .bottomnav{display:flex;position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));z-index:20}
+  .bottomnav button{flex:1;background:none;border:0;color:var(--muted);font-size:11px;font-weight:700;display:grid;justify-items:center;gap:2px;padding:6px 0}
+  .bottomnav button.on{color:var(--cyan)}
+  .bottomnav svg{width:20px;height:20px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .split,.radar-wrap{grid-template-columns:1fr}
+  .split.has-sel .list{display:none}
+  .split:not(.has-sel) .detail{display:none}
+  .back{display:inline-block}
+  .detail{position:static}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<section id="login">
+  <div class="aurora"></div>
+  <div class="login-card">
+    <div class="hero">
+      <div class="brand"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span><b>Kural</b></div>
+      <h1>IT help that <span class="grad-text">listens, sees and understands.</span></h1>
+      <p>Speak or type your problem in Tamil, Hindi, English or a mix. Share a screenshot. Kural finds the fix, reads how you feel, and sends anything unsolved to the right IT team.</p>
+      <p class="tamil" style="margin-top:14px">குரல் · “VOICE” IN TAMIL</p>
+    </div>
+    <div class="roles" id="roles"></div>
+    <p class="demo-note">Demo mode: pick anyone to sign in. No password needed.</p>
+  </div>
+</section>
+
+<div id="app" hidden>
+  <aside class="side">
+    <div class="brand"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span><b>Kural</b></div>
+    <nav class="nav" id="nav"></nav>
+    <div class="me" id="me"></div>
+  </aside>
+  <main>
+    <div class="top"><h2 id="vtitle">Help</h2><span class="mode" id="mode">Offline demo</span></div>
+    <section class="view" id="v-help">
+      <div class="chat" id="chat"></div>
+      <div class="composer">
+        <div class="attach-prev" id="prev" hidden></div>
+        <div class="bar">
+          <select class="lang" id="lang" aria-label="Voice language">
+            <option value="en-IN">EN</option><option value="ta-IN">தமிழ்</option><option value="hi-IN">हिंदी</option>
+          </select>
+          <button class="ib" id="mic" title="Speak" aria-label="Speak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+          <button class="ib" id="clip" title="Add screenshot" aria-label="Add screenshot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 16-5-5-8 8"/></svg></button>
+          <input type="file" id="file" accept="image/*" hidden>
+          <textarea id="input" rows="1" placeholder="Describe your problem… or paste a screenshot (Ctrl+V)"></textarea>
+          <button class="ib send" id="send" title="Send" aria-label="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+        <div class="hint" id="hint">Tip: say “VPN connect aagala, client call in 10 mins” and see what happens.</div>
+      </div>
+    </section>
+    <section class="view" id="v-tickets" hidden></section>
+    <section class="view" id="v-console" hidden></section>
+    <section class="view" id="v-radar" hidden></section>
+  </main>
+  <nav class="bottomnav" id="bnav"></nav>
+</div>
+
+<script>
+/* ================= data & helpers ================= */
+const USERS=[
+ {id:'priya',name:'Priya Sharma',role:'employee',sub:'Finance',c:'#22D3EE'},
+ {id:'karthik',name:'Karthik Raman',role:'employee',sub:'Sales',c:'#60A5FA'},
+ {id:'meena',name:'Meena Iyer',role:'employee',sub:'HR',c:'#34D399'},
+ {id:'arjun',name:'Arjun',role:'agent',team:'Network',sub:'Network team',c:'#A78BFA'},
+ {id:'divya',name:'Divya',role:'agent',team:'Access & Identity',sub:'Access & Identity team',c:'#F472B6'},
+ {id:'rahul',name:'Rahul',role:'agent',team:'Devices & Software',sub:'Devices & Software team',c:'#FB923C'},
+ {id:'sanjay',name:'Sanjay',role:'manager',sub:'IT Manager · all teams',c:'#F5B85A'}];
+const SLA={P1:'15 minutes',P2:'1 hour',P3:'4 hours',P4:'1 day'};
+const EMO={calm:'🙂 Calm',confused:'🤔 Confused',anxious:'😟 Anxious',frustrated:'😤 Frustrated',angry:'😡 Angry'};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ini=n=>n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+const ago=t=>{const m=Math.round((Date.now()-t)/60000);if(m<1)return'just now';if(m<60)return m+' min ago';const h=Math.round(m/60);return h<24?h+' hr ago':Math.round(h/24)+' d ago'};
+function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),2600)}
+const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+/* ================= knowledge for demo mode ================= */
+const KB=[
+ {k:['vpn','tunnel','forti','anyconnect'],sig:'vpn_failure',title:'VPN not connecting',cat:'Network',team:'Network',p:'P2',cause:'Expired VPN session or a stuck network adapter.',steps:['Disconnect the VPN app and close it fully.','Turn Wi-Fi off and on again.','Open the VPN app and sign in again with your office ID.','Still failing? Restart the laptop and try once more.']},
+ {k:['password','locked','lock out','lockout','forgot','sign in','login','log in'],sig:'password_lockout',title:'Account locked / forgot password',cat:'Access & Identity',team:'Access & Identity',p:'P2',cause:'Too many wrong password attempts locked the account.',steps:['Wait 15 minutes for the automatic unlock.','Open the self-service password page and choose “Forgot password”.','Verify with the OTP on your phone and set a new password.','Sign in again on every device with the new password.']},
+ {k:['outlook','email','mail','inbox'],sig:'outlook_sync',title:'Outlook not syncing',cat:'Email & Collaboration',team:'Devices & Software',p:'P3',cause:'Outlook is in offline mode or its local cache is stuck.',steps:['In Outlook, open Send/Receive and turn off “Work Offline”.','Close Outlook and open it again.','Check your mail in the web browser to see if it arrives there.','If the web works but the app does not, IT will rebuild your profile.']},
+ {k:['printer','print','printing'],sig:'printer_offline',title:'Printer offline',cat:'Hardware',team:'Devices & Software',p:'P4',cause:'The printer lost its network connection or the print queue is stuck.',steps:['Check the printer is on and shows no error light.','Open Printers on your laptop and cancel all pending jobs.','Remove the printer and add it again.','Print a test page.']},
+ {k:['wifi','wi-fi','internet','network','disconnect'],sig:'wifi_drops',title:'Wi-Fi keeps disconnecting',cat:'Network',team:'Network',p:'P3',cause:'Weak signal or an old saved Wi-Fi profile.',steps:['Forget the office Wi-Fi and connect again.','Move closer to the access point and test.','Update the Wi-Fi driver from Software Center.','If many people face this, IT will check the access point.']},
+ {k:['teams','camera','mic','microphone','zoom','meet'],sig:'teams_av',title:'Teams camera or mic not working',cat:'Email & Collaboration',team:'Devices & Software',p:'P3',cause:'Another app is using the camera or permission is blocked.',steps:['Close other apps that use the camera (Zoom, browser tabs).','In Teams: Settings › Devices, pick the right camera and mic.','Windows Settings › Privacy › Camera: allow Teams.','Restart Teams.']},
+ {k:['sharepoint','access denied','0x80070005','permission','folder access'],sig:'sharepoint_access',title:'SharePoint access denied',cat:'Access & Identity',team:'Access & Identity',p:'P3',cause:'You are not in the access group for that site.',steps:['Click “Request access” on the error page.','Write the site name and why you need it.','The site owner or your manager approves it.','Sign out and back in after approval.']},
+ {k:['slow','hang','freez','lag','stuck'],sig:'laptop_slow',title:'Laptop running slow',cat:'Hardware',team:'Devices & Software',p:'P4',cause:'Low disk space and too many apps running.',steps:['Restart the laptop (not just sleep).','Close apps and browser tabs you are not using.','Clear the Downloads folder and empty the Recycle Bin.','Turn off unneeded startup apps in Task Manager.']}];
+const OPEN={
+ English:{calm:'Here’s how to fix it:',confused:'No worries, let’s do this step by step:',anxious:'Don’t worry, your data is safe. Let’s fix this together:',frustrated:'Sorry about this. Fastest fix first:',angry:'I understand, this is urgent. Quickest fix first:'},
+ Tanglish:{calm:'Idha try pannunga:',confused:'Kavalai vendam, step by step pannalaam:',anxious:'Bayapadaadheenga, data safe-a irukku. Serndhu fix pannalaam:',frustrated:'Sorry, idhu kashtam dhaan. Fast fix mudhalla:',angry:'Puriyudhu, idhu urgent. Quick fix mudhalla:'},
+ Tamil:{calm:'இதை முயற்சி செய்யுங்கள்:',confused:'கவலை வேண்டாம், படிப்படியாக செய்யலாம்:',anxious:'பயப்பட வேண்டாம், உங்கள் தகவல் பாதுகாப்பாக உள்ளது:',frustrated:'மன்னிக்கவும். வேகமான தீர்வு முதலில்:',angry:'புரிகிறது, இது அவசரம். முதலில் விரைவான தீர்வு:'},
+ Hindi:{calm:'इसे आज़माइए:',confused:'चिंता मत कीजिए, कदम-दर-कदम करते हैं:',anxious:'घबराइए मत, आपका डेटा सुरक्षित है:',frustrated:'माफ़ कीजिए। सबसे तेज़ उपाय पहले:',angry:'समझ गया, यह ज़रूरी है। पहले तेज़ उपाय:'},
+ Hinglish:{calm:'Ye try kariye:',confused:'Tension mat lo, step by step karte hain:',anxious:'Ghabraiye mat, data safe hai. Saath mein fix karte hain:',frustrated:'Sorry yaar. Sabse fast fix pehle:',angry:'Samajh gaya, ye urgent hai. Quick fix pehle:'}};
+function detectLang(t){
+  if(/[஀-௿]/.test(t))return'Tamil';
+  if(/[ऀ-ॿ]/.test(t))return'Hindi';
+  if(/\b(aagala|aagudhu|aaguthu|illa|enna|pannu|panna|iruku|irukku|vela|seri|da|machan|theriyala|varala|aachu)\b/i.test(t))return'Tanglish';
+  if(/\b(nahi|nahin|hai|kar|raha|rahi|kya|kaise|mera|meri|ho gaya)\b/i.test(t))return'Hinglish';
+  return'English';
+}
+function localAnalyze(text,hasShot){
+  const t=text.toLowerCase();
+  let best=null,score=0;
+  for(const r of KB){const s=r.k.filter(k=>t.includes(k)).length;if(s>score){score=s;best=r}}
+  const known=!!best;
+  if(!best)best={sig:'general_issue',title:'IT issue reported',cat:'Other',team:'Devices & Software',p:'P3',cause:'Not clear yet. IT will check.',steps:['Restart the app or laptop once.','Note any error message you see.','If it still fails, raise a ticket so IT can help.']};
+  const urg=[];
+  const m=text.match(/(?:in\s+)?\d+\s*(?:min|mins|minutes|hr|hrs|hour|hours)/i);
+  const ctx=text.match(/(?:client |team )?(?:call|meeting|demo|interview|deadline|presentation|payroll|exam)|client/i);
+  if(ctx&&m)urg.push(`⏰ ${ctx[0].toLowerCase()} ${m[0].replace(/^in\s+/i,'in ')}`);
+  else if(ctx)urg.push(`⏰ ${ctx[0].toLowerCase()} today`);
+  else if(m)urg.push(`⏰ needed ${m[0]}`);
+  if(/urgent|asap|immediately|right now/i.test(text))urg.push('urgent request');
+  const everyone=/everyone|whole team|all of us|entire (office|floor)|nobody can/i.test(text);
+  let emotion='calm';
+  const bangs=(text.match(/!/g)||[]).length, caps=(text.match(/\b[A-Z]{3,}\b/g)||[]).length;
+  if(/useless|worst|ridiculous|hate|fed up|third time|again and again|seriously/i.test(text)||caps>=2)emotion='angry';
+  else if(bangs>=2||/again|still not|not working at all|urgent|asap|kashtam|annoying/i.test(text))emotion='frustrated';
+  else if(/scared|worried|afraid|panic|lost|delete|bayam|tension|help me/i.test(text))emotion='anxious';
+  else if(/don.?t know|confused|not sure|what to do|theriyala|how do i/i.test(text))emotion='confused';
+  if(urg.length&&emotion==='calm')emotion='anxious';
+  let p=best.p, reason='Based on the type of problem.';
+  if(everyone){p='P1';reason='Many people are affected.'}
+  else if(urg.length&&(p==='P3'||p==='P4')){p='P2';reason='Work is blocked with a near deadline.'}
+  else if(urg.length&&p==='P2'){p='P1';reason='Blocked with a deadline within the hour.'}
+  const lang=detectLang(text);
+  const open=(OPEN[lang]||OPEN.English)[emotion];
+  return{reply:open,fix_steps:best.steps,category:best.cat,team:best.team,priority:p,priority_reason:reason,emotion,urgency_clues:urg,
+    title:best.title,english_summary:`${best.title}. User said: "${text.slice(0,140)}"`,english_translation:lang==='English'?'':'(Translation available in live AI mode)',
+    language:lang,screenshot_findings:hasShot?'Screenshot attached for IT to review.':'',confidence:known?0.78:0.45,issue_signature:best.sig,root_cause:best.cause};
+}
+
+/* ================= live capabilities (AI + shared tickets) ================= */
+let sample=null, db=null, canImg=false;
+let tickets=[];
+const SEED=()=>{const n=Date.now(),H=3600000,mk=(id,u,ti,cat,team,p,emo,msg,st,age,extra={})=>({id,userId:u,userName:USERS.find(x=>x.id===u).name,title:ti,category:cat,team,priority:p,emotion:emo,urgency_clues:[],message:msg,language:'English',english_summary:ti+'.',steps:[],status:st,createdAt:n-age,replies:[],confidence:.85,issue_signature:'',...extra});
+ return[ // example tickets for the offline demo only
+  mk('TKT-1031','karthik','SharePoint access denied','Access & Identity','Access & Identity','P2','frustrated','SharePoint says access denied, I need the proposal folder for today’s client demo!','In Progress',1.5*H,{urgency_clues:['⏰ client demo today'],issue_signature:'sharepoint_access',screenshot_findings:'Error 0x80070005 Access Denied on “Sales Proposals”.'}),
+  mk('TKT-1032','meena','Wi-Fi keeps disconnecting','Network','Network','P3','confused','Wi-Fi adikkadi disconnect aagudhu, enna pannanum nu theriyala','Open',3*H,{language:'Tanglish',english_translation:'Wi-Fi keeps disconnecting, I don’t know what to do.',issue_signature:'wifi_drops'}),
+  mk('TKT-1033','priya','Printer offline','Hardware','Devices & Software','P4','calm','The 2nd floor printer shows offline.','Open',5*H,{issue_signature:'printer_offline'}),
+  mk('TKT-1029','priya','VPN not connecting','Network','Network','P2','anxious','VPN not connecting before month-end close.','Resolved',26*H,{issue_signature:'vpn_failure',replies:[{by:'Arjun',text:'Reset your VPN profile. Please try now.',at:n-25*H}]}),
+  mk('TKT-1030','karthik','Outlook not syncing','Email & Collaboration','Devices & Software','P3','calm','Outlook stopped getting new emails.','Self-resolved',30*H,{issue_signature:'outlook_sync'})]};
+
+async function boot(){
+  tickets=store.get('kural_tickets')||SEED();
+  renderAll();
+  if(!window.claude?.use)return;
+  claude.use('sample').then(async s=>{if(!s)return;sample=s;try{const l=await s.limits();canImg=!!l.images}catch(e){} setMode()});
+  claude.use('db').then(d=>{if(!d)return;db=d;setMode();
+    db.collection('tickets').onSnapshot(snap=>{tickets=snap.docs.map(x=>x.data());renderAll()},()=>{});
+  });
+}
+function setMode(){const el=$('#mode');if(sample||db){el.textContent=(sample?'AI live':'Demo AI')+(db?' · shared tickets':'');el.classList.add('live')}}
+async function saveTicket(t){
+  if(db){try{await db.doc('tickets/'+t.id).set(t);return}catch(e){
+    try{const c={...t};delete c.screenshot;await db.doc('tickets/'+t.id).set(c);return}catch(e2){toast('Could not save to the shared store. Saved on this device.')}}}
+  const i=tickets.findIndex(x=>x.id===t.id);if(i>=0)tickets[i]=t;else tickets.unshift(t);
+  store.set('kural_tickets',tickets.map(x=>{const c={...x};if(c.screenshot&&c.screenshot.length>150000)delete c.screenshot;return c}));renderAll();
+}
+const newId=()=>'TKT-'+(1000+Math.floor((Date.now()/1000)%9000)+Math.floor(Math.random()*90));
+
+async function analyze(text,shotBlob,hasShot,history){
+  if(sample){
+    const prompt=`You are Kural, an empathetic multilingual IT helpdesk AI for an Indian company.
+Conversation so far:\n${history}\n\nNew user message: """${text||'(no text, see screenshot)'}"""
+${hasShot?'The user attached a screenshot of their screen (see image). Read any error code, app name and message from it.':''}
+Return ONLY JSON with these keys:
+reply (string, 1-2 sentences, in the SAME language and script the user wrote in, e.g. Tamil script, Tanglish in Latin letters, Hindi, Hinglish, English),
+fix_steps (array of 3-5 short, safe steps, in the user's language),
+category (one of "Network","Access & Identity","Hardware","Software","Email & Collaboration","Other"),
+team (one of "Network","Access & Identity","Devices & Software"),
+priority ("P1"|"P2"|"P3"|"P4"), priority_reason (English),
+emotion ("calm"|"confused"|"anxious"|"frustrated"|"angry"),
+urgency_clues (array of short English strings like "client call in 10 min"),
+title (short English ticket title), english_summary (English, 1-2 sentences for IT),
+english_translation (English translation of the user's message, or "" if already English),
+language (name of the language used), screenshot_findings (English, what you saw on screen, or ""),
+root_cause (English), issue_signature (snake_case short id), confidence (0-1).
+Rules: emotion changes TONE only (frustrated/angry: one short apology then fastest fix first; anxious/confused: reassure, simple steps). Priority depends ONLY on business impact and urgency, never on anger. Never suggest unsafe or destructive steps.`;
+    try{
+      const opts={modelTier:'quick',cache:false};
+      if(shotBlob&&canImg)opts.images=[shotBlob];
+      const r=await sample.json(prompt,opts);
+      if(r&&r.reply&&Array.isArray(r.fix_steps))return r;
+    }catch(e){ if(e&&e.code==='not_granted')sample=null; }
+  }
+  return localAnalyze(text,hasShot);
+}
+
+/* ================= session & nav ================= */
+let me=null,view='help';
+const ICON={
+ help:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/></svg>',
+ tickets:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4Z"/></svg>',
+ console:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h8"/></svg>',
+ radar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 12 18 6"/></svg>'};
+const LABEL={help:'Help chat',tickets:'My tickets',console:'Ticket queue',radar:'Outage radar'};
+const viewsFor=u=>u.role==='employee'?['help','tickets']:u.role==='agent'?['console']:['radar','console'];
+
+function renderLogin(){
+  const groups=[['employee','Employees'],['agent','IT agents'],['manager','IT manager']];
+  $('#roles').innerHTML=groups.map(([r,l])=>`<div class="role"><h3>${l}</h3>${USERS.filter(u=>u.role===r).map(u=>`<button class="ucard" data-u="${u.id}"><span class="av" style="background:${u.c}">${ini(u.name)}</span><span><b>${esc(u.name)}</b><small>${esc(u.sub)}</small></span></button>`).join('')}</div>`).join('');
+  $('#roles').onclick=e=>{const b=e.target.closest('[data-u]');if(b)login(b.dataset.u)};
+}
+function login(id){me=USERS.find(u=>u.id===id);store.set('kural_user',id);view=viewsFor(me)[0];$('#login').hidden=true;$('#app').hidden=false;chat=[];renderShell();renderAll()}
+function logout(){me=null;store.set('kural_user',null);$('#app').hidden=true;$('#login').hidden=false}
+function renderShell(){
+  const vs=viewsFor(me);
+  const nav=vs.map(v=>`<button data-v="${v}" class="${v===view?'on':''}">${ICON[v]}<span>${LABEL[v]}</span></button>`).join('');
+  $('#nav').innerHTML=nav;$('#bnav').innerHTML=nav+`<button data-out="1">${'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 17l5-5-5-5M21 12H9M12 21H5V3h7"/></svg>'}<span>Switch</span></button>`;
+  $('#me').innerHTML=`<span class="av" style="background:${me.c}">${ini(me.name)}</span><div><b>${esc(me.name)}</b><small>${esc(me.sub)}</small></div><button class="ghost" id="out">Switch</button>`;
+  $('#out').onclick=logout;
+  for(const n of [$('#nav'),$('#bnav')])n.onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.out)return logout();view=b.dataset.v;renderShell();renderAll()};
+  ['help','tickets','console','radar'].forEach(v=>$('#v-'+v).hidden=v!==view);
+  $('#vtitle').textContent=LABEL[view];
+}
+function renderAll(){if(!me)return;if(view==='help')renderChat();if(view==='tickets')renderMy();if(view==='console')renderConsole();if(view==='radar')renderRadar()}
+
+/* ================= help chat ================= */
+let chat=[],shot=null,busy=false;
+const CHIPS=['🔐 Forgot password','🌐 VPN not working','📧 Outlook not syncing','🖨️ Printer offline','🐢 Laptop is slow'];
+function greet(){const h=new Date().getHours();return h<12?'Good morning':h<17?'Good afternoon':'Good evening'}
+function renderChat(){
+  const box=$('#chat');
+  if(!chat.length){
+    box.innerHTML=`<div class="aurora" style="opacity:.6"></div><div class="empty"><h3>Vanakkam, ${esc(me.name.split(' ')[0])} 👋<br><span class="grad-text">What’s troubling you today?</span></h3><p>${greet()}. Speak, type or paste a screenshot. Any language: தமிழ், हिंदी, English or a mix.</p><div class="chips">${CHIPS.map(c=>`<button class="chip" data-c="${esc(c.slice(c.indexOf(' ')+1))}">${c}</button>`).join('')}</div></div>`;
+    box.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{$('#input').value=b.dataset.c;send()});
+    return;
+  }
+  box.innerHTML=chat.map((m,i)=>m.who==='user'?`<div class="msg user">${esc(m.text)}${m.img?`<img src="${m.img}" alt="Your screenshot">`:''}</div>`:m.who==='think'?thinkHTML(m):botHTML(m,i)).join('');
+  box.querySelectorAll('[data-fix]').forEach(b=>b.onclick=()=>resolveChat(+b.dataset.fix,true));
+  box.querySelectorAll('[data-raise]').forEach(b=>b.onclick=()=>resolveChat(+b.dataset.raise,false));
+  box.scrollTop=box.scrollHeight;
+}
+function thinkHTML(m){const st=['Listening to you',m.shot?'Reading your screen':null,'Understanding how you feel','Finding the fix'].filter(Boolean);
+  return`<div class="think">${st.map((s,i)=>`<div class="${i<m.step?'ok':i===m.step?'on':''}"><span class="dot"></span>${i<m.step?'✓ ':''}${s}</div>`).join('')}</div>`}
+function botHTML(m,i){const a=m.a;
+  return`<div class="bot"><p class="lead">${esc(a.reply)}</p>
+  <ol class="steps">${a.fix_steps.map((s,j)=>`<li><label><input type="checkbox" id="s${i}_${j}"><span>${esc(s)}</span></label></li>`).join('')}</ol>
+  ${a.screenshot_findings?`<div class="saw"><b>What I saw on your screen:</b> ${esc(a.screenshot_findings)}</div>`:''}
+  <div class="tags"><span class="tag pri ${a.priority}" title="${esc(a.priority_reason)}">${a.priority} · ${esc(a.priority_reason||'')}</span><span class="tag emo-${a.emotion}">${EMO[a.emotion]||a.emotion}</span><span class="tag">${esc(a.team)} team</span><span class="tag">${Math.round((a.confidence||0)*100)}% sure</span>${(a.urgency_clues||[]).map(u=>`<span class="tag urg">${esc(u.startsWith('⏰')?u:'⏰ '+u)}</span>`).join('')}</div>
+  ${m.result?m.result:`<div class="acts"><button class="btn pri-btn" data-fix="${i}">✅ Fixed it!</button><button class="btn sec" data-raise="${i}">Still broken · raise ticket</button></div>`}</div>`}
+async function send(){
+  if(busy)return;
+  const text=$('#input').value.trim();
+  if(!text&&!shot){toast('Type, speak or add a screenshot first.');return}
+  busy=true;$('#send').disabled=true;
+  const img=shot?shot.url:null, blob=shot?shot.blob:null;
+  const history=chat.filter(m=>m.who==='user').slice(-4).map(m=>'User: '+m.text).join('\n');
+  chat.push({who:'user',text:text||'(screenshot)',img});
+  $('#input').value='';autosize();clearShot();
+  const th={who:'think',step:0,shot:!!img};chat.push(th);renderChat();
+  const timer=setInterval(()=>{th.step=Math.min(th.step+1,(img?3:2));renderChat()},700);
+  let a;const t0=Date.now();
+  try{a=await analyze(text,blob,!!img,history)}catch(e){a=localAnalyze(text,!!img)}
+  await new Promise(r=>setTimeout(r,Math.max(0,1800-(Date.now()-t0))));
+  clearInterval(timer);chat.splice(chat.indexOf(th),1);
+  a.fix_steps=(a.fix_steps||[]).slice(0,6);if(!EMO[a.emotion])a.emotion='calm';if(!SLA[a.priority])a.priority='P3';
+  chat.push({who:'bot',a,text,img});busy=false;$('#send').disabled=false;renderChat();
+}
+async function resolveChat(i,fixed){
+  const m=chat[i],a=m.a;
+  const t={id:newId(),userId:me.id,userName:me.name,title:a.title||'IT issue',category:a.category,team:a.team,priority:a.priority,priority_reason:a.priority_reason,
+    emotion:a.emotion,urgency_clues:a.urgency_clues||[],message:m.text,language:a.language||detectLang(m.text),english_translation:a.english_translation||'',
+    english_summary:a.english_summary||'',root_cause:a.root_cause||'',steps:a.fix_steps,screenshot_findings:a.screenshot_findings||'',confidence:a.confidence||0,
+    issue_signature:a.issue_signature||'general',status:fixed?'Self-resolved':'Open',createdAt:Date.now(),replies:[]};
+  if(m.img){t.screenshot=await shrink(m.img,640,.6)}
+  m.result=fixed?`<div class="done ok">🎉 Great! Glad it’s working. Saved as self-resolved (${t.id}).</div>`
+    :`<div class="done tk">🎫 Ticket <b class="mono">${t.id}</b> sent to the <b>${esc(t.team)}</b> team · ${t.priority}<small>Expected response within ${SLA[t.priority]}. Track it in My tickets.</small></div>`;
+  renderChat();await saveTicket(t);
+  if(fixed)confetti();else toast('Ticket '+t.id+' created');
+}
+
+/* screenshot input */
+function setShot(file){if(!file||!file.type.startsWith('image/'))return;const r=new FileReader();r.onload=async()=>{const url=await shrink(r.result,1400,.85);let blob=file;try{blob=toBlob(url)}catch(e){}shot={url,blob};$('#prev').hidden=false;$('#prev').innerHTML=`<img src="${url}" alt="Screenshot to send"><span class="muted">Screenshot ready</span><button class="ghost" id="rm">Remove</button>`;$('#rm').onclick=clearShot};r.readAsDataURL(file)}
+function toBlob(u){const [h,d]=u.split(',');const mime=h.match(/:(.*?);/)[1];const b=atob(d);const a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return new Blob([a],{type:mime})}
+function clearShot(){shot=null;$('#prev').hidden=true;$('#prev').innerHTML=''}
+function shrink(src,max,q){return new Promise(res=>{const im=new Image();im.onload=()=>{const s=Math.min(1,max/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',q))};im.onerror=()=>res(src);im.src=src})}
+$('#clip').onclick=()=>$('#file').click();
+$('#file').onchange=e=>{setShot(e.target.files[0]);e.target.value=''};
+document.addEventListener('paste',e=>{if(!me||view!=='help')return;const it=[...(e.clipboardData?.items||[])].find(x=>x.type.startsWith('image/'));if(it){e.preventDefault();setShot(it.getAsFile());toast('Screenshot added')}});
+const inp=$('#input');function autosize(){inp.style.height='auto';inp.style.height=Math.min(inp.scrollHeight,140)+'px'}
+inp.addEventListener('input',autosize);
+inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
+$('#send').onclick=send;
+
+/* voice */
+let rec=null;
+$('#mic').onclick=()=>{
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(rec){rec.stop();return}
+  if(!SR){toast('Voice needs Chrome. Please type for now.');return}
+  try{
+    rec=new SR();rec.lang=$('#lang').value;rec.interimResults=true;rec.continuous=false;
+    const base=inp.value?inp.value+' ':'';
+    rec.onresult=e=>{let s='';for(const r of e.results)s+=r[0].transcript;inp.value=base+s;autosize()};
+    rec.onerror=e=>{toast(e.error==='not-allowed'||e.error==='service-not-allowed'?'Microphone is blocked here. Open the downloaded file in Chrome, or type.':'Could not hear you. Please try again or type.')};
+    rec.onend=()=>{rec=null;$('#mic').classList.remove('rec')};
+    rec.start();$('#mic').classList.add('rec');toast('Listening… speak now');
+  }catch(e){rec=null;toast('Voice is not available here. Please type.')}
+};
+
+/* ================= employee: my tickets ================= */
+const sCls=s=>'s-'+s.replace(/[\s-]/g,'');
+function renderMy(){
+  const mine=tickets.filter(t=>t.userId===me.id).sort((a,b)=>b.createdAt-a.createdAt);
+  $('#v-tickets').innerHTML=mine.length?`<div class="list">${mine.map(t=>`<div class="row"><div class="r1"><span class="t">${esc(t.title)}</span><span class="status ${sCls(t.status)}">${t.status}</span></div>
+   <div class="tags"><span class="id">${t.id}</span><span class="tag pri ${t.priority}">${t.priority}</span><span class="tag">${esc(t.team)} team</span><span class="tag">${ago(t.createdAt)}</span></div>
+   ${(t.replies||[]).length?`<div class="replies">${t.replies.map(r=>`<div class="reply"><b>${esc(r.by)}</b> · <span class="muted">${ago(r.at)}</span><br>${esc(r.text)}</div>`).join('')}</div>`:(t.status==='Open'?'<span class="muted">Waiting for IT. Expected within '+SLA[t.priority]+'.</span>':'')}</div>`).join('')}</div>`
+   :`<div class="blank">No tickets yet. When Kural can’t fix something, your ticket shows up here with live updates.</div>`;
+}
+
+/* ================= agent console ================= */
+let selId=null;
+const PR={P1:1,P2:2,P3:3,P4:4};
+function renderConsole(){
+  const mine=tickets.filter(t=>me.role==='manager'||t.team===me.team);
+  const q=mine.filter(t=>t.status==='Open'||t.status==='In Progress').sort((a,b)=>PR[a.priority]-PR[b.priority]||b.createdAt-a.createdAt);
+  const done=mine.filter(t=>t.status==='Resolved'||t.status==='Self-resolved').sort((a,b)=>b.createdAt-a.createdAt).slice(0,8);
+  const sel=tickets.find(t=>t.id===selId);
+  const draft=$('#replytxt')?.value||'';
+  const row=t=>`<button class="row ${t.id===selId?'sel':''}" data-id="${t.id}"><div class="r1"><span class="t">${esc(t.title)}</span><span class="tag pri ${t.priority}">${t.priority}</span></div>
+    <div class="tags"><span class="id">${t.id}</span><span class="tag emo-${t.emotion}">${EMO[t.emotion]||''}</span>${(t.urgency_clues||[]).slice(0,2).map(u=>`<span class="tag urg">${esc(u.startsWith('⏰')?u:'⏰ '+u)}</span>`).join('')}<span class="status ${sCls(t.status)}">${t.status}</span><span class="tag">${esc(t.userName)} · ${ago(t.createdAt)}</span></div></button>`;
+  const self=mine.filter(t=>t.status==='Self-resolved').length;
+  $('#v-console').innerHTML=`<div class="stats">
+    <div class="stat"><small>Open now</small><b>${q.length}</b></div>
+    <div class="stat"><small>P1 urgent</small><b style="color:var(--p1)">${q.filter(t=>t.priority==='P1').length}</b></div>
+    <div class="stat"><small>Stressed users</small><b style="color:var(--p2)">${q.filter(t=>['anxious','frustrated','angry'].includes(t.emotion)).length}</b></div>
+    <div class="stat"><small>Fixed by Kural</small><b style="color:var(--ok)">${self}</b></div></div>
+   <div class="split ${sel?'has-sel':''}"><div class="list">${q.length?q.map(row).join(''):'<div class="blank">Queue is clear. New tickets for '+(me.role==='manager'?'all teams':esc(me.team)+' team')+' appear here, most urgent first.</div>'}
+     ${done.length?`<p class="muted" style="margin:14px 0 2px;font-weight:700">Recently closed</p>${done.map(row).join('')}`:''}</div>
+   <div class="detail">${sel?detailHTML(sel):'<p class="muted">Select a ticket to see the AI summary, the user’s own words and the suggested fix.</p>'}</div></div>`;
+  $('#v-console').querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>{selId=b.dataset.id;renderConsole()});
+  if(sel){
+    const v=$('#v-console');
+    if(draft&&v.querySelector('#replytxt'))v.querySelector('#replytxt').value=draft;
+    v.querySelector('[data-back]').onclick=()=>{selId=null;renderConsole()};
+    v.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{sel.status=b.dataset.st;if(sel.status==='Resolved')sel.replies=[...(sel.replies||[]),{by:me.name,text:'Resolved. Please check and reply if anything is still wrong.',at:Date.now()}];saveTicket({...sel});toast(sel.id+' → '+sel.status)});
+    const rb=v.querySelector('#sendreply');if(rb)rb.onclick=()=>{const tx=v.querySelector('#replytxt').value.trim();if(!tx)return toast('Write a reply first.');sel.replies=[...(sel.replies||[]),{by:me.name,text:tx,at:Date.now()}];if(sel.status==='Open')sel.status='In Progress';saveTicket({...sel});toast('Reply sent to '+sel.userName)};
+  }
+}
+function detailHTML(t){
+  return`<div style="display:flex;justify-content:space-between;gap:10px;align-items:start"><div><span class="id mono muted">${t.id}</span><h3>${esc(t.title)}</h3></div><button class="ghost back" data-back="1">← Back</button></div>
+  <div class="tags"><span class="tag pri ${t.priority}">${t.priority}</span><span class="tag emo-${t.emotion}">${EMO[t.emotion]||''}</span><span class="tag">${esc(t.category)}</span><span class="status ${sCls(t.status)}">${t.status}</span>${t.confidence?`<span class="tag">${Math.round(t.confidence*100)}% AI confidence</span>`:''}</div>
+  <div class="kv"><small>AI summary</small><p>${esc(t.english_summary||t.title)}</p></div>
+  <div class="kv"><small>User’s own words · ${esc(t.language||'English')}</small><p>“${esc(t.message)}”</p>${t.english_translation?`<p class="muted">English: ${esc(t.english_translation)}</p>`:''}</div>
+  ${t.priority_reason?`<div class="kv"><small>Why this priority</small><p>${esc(t.priority_reason)}</p></div>`:''}
+  ${t.screenshot_findings?`<div class="kv"><small>Seen on screen</small><p>${esc(t.screenshot_findings)}</p></div>`:''}
+  ${t.screenshot?`<img src="${t.screenshot}" alt="User screenshot">`:''}
+  ${(t.steps||[]).length?`<div class="kv"><small>Steps the user already got</small><ol style="margin:0;padding-left:18px">${t.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol></div>`:''}
+  ${(t.replies||[]).length?`<div class="replies">${t.replies.map(r=>`<div class="reply"><b>${esc(r.by)}</b> · <span class="muted">${ago(r.at)}</span><br>${esc(r.text)}</div>`).join('')}</div>`:''}
+  ${t.status==='Open'||t.status==='In Progress'?`<textarea class="field" id="replytxt" placeholder="Reply to ${esc(t.userName)}…"></textarea>
+  <div class="acts"><button class="btn pri-btn" id="sendreply">Send reply</button>${t.status==='Open'?'<button class="btn sec" data-st="In Progress">Start work</button>':''}<button class="btn sec" data-st="Resolved">✓ Resolve</button></div>`:''}`;
+}
+
+/* ================= manager: outage radar ================= */
+function clusters(){
+  const recent=tickets.filter(t=>(t.status==='Open'||t.status==='In Progress')&&Date.now()-t.createdAt<3600000);
+  const g={};recent.forEach(t=>{const k=t.issue_signature||t.title;(g[k]=g[k]||[]).push(t)});
+  return Object.entries(g).map(([k,ts])=>({k,ts,title:ts[0].title,team:ts[0].team})).sort((a,b)=>b.ts.length-a.ts.length);
+}
+function renderRadar(){
+  const cs=clusters(), out=cs.filter(c=>c.ts.length>=3);
+  const blips=cs.slice(0,8).map((c,i)=>{const ang=i*2.4+0.6,r=18+((i*17)%26);const x=50+r*Math.cos(ang),y=50+r*Math.sin(ang);const s=26+Math.min(c.ts.length,10)*6;
+    return`<span class="blip" title="${esc(c.title)}: ${c.ts.length}" style="left:${x}%;top:${y}%;width:${s}px;height:${s}px;background:${c.ts.length>=3?'var(--p1)':'var(--cyan)'};box-shadow:0 0 18px ${c.ts.length>=3?'rgba(251,113,133,.7)':'rgba(34,211,238,.5)'}">${c.ts.length}</span>`}).join('');
+  $('#v-radar').innerHTML=`<div class="radar-wrap"><div><div class="scope"><div class="sweep"></div>${blips}</div>
+   <p class="muted" style="font-size:13px;margin-top:10px">Each dot is one type of problem reported in the last hour. Size = number of people. Red = 3 or more people, a likely outage.</p></div>
+   <div style="display:grid;gap:14px">
+    ${out.length?out.map(c=>{const notified=c.ts.every(t=>(t.replies||[]).some(r=>r.tag==='incident'));return`<div class="alert"><h3>⚠️ Possible outage: ${esc(c.title)}</h3>
+      <div class="tags"><span class="tag pri P1">${c.ts.length} people affected</span><span class="tag">${esc(c.team)} team</span><span class="tag">${c.ts.filter(t=>['frustrated','angry','anxious'].includes(t.emotion)).length} stressed</span></div>
+      <p class="muted" style="margin:0">One incident instead of ${c.ts.length} separate tickets. Tell everyone at once so nobody waits in silence.</p>
+      <div class="acts"><button class="btn pri-btn" data-notify="${esc(c.k)}" ${notified?'disabled':''}>${notified?'✓ Everyone notified':'Notify all affected users'}</button><button class="btn sec" data-fixall="${esc(c.k)}">Mark incident resolved</button></div></div>`}).join('')
+    :`<div class="blank">No outage right now. When 3 or more people report the same problem within an hour, it lights up here.</div>`}
+    <div class="stat" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><span><b style="font-size:16px;font-family:var(--body)">Demo tool</b><span class="muted" style="display:block;font-size:13px">Creates 8 VPN reports from different people, as if VPN went down.</span></span><button class="btn sec" id="sim">Simulate VPN outage</button></div>
+    ${cs.filter(c=>c.ts.length<3).length?`<div class="list">${cs.filter(c=>c.ts.length<3).map(c=>`<div class="row"><div class="r1"><span class="t">${esc(c.title)}</span><span class="tag">${c.ts.length} report${c.ts.length>1?'s':''}</span></div></div>`).join('')}</div>`:''}
+   </div></div>`;
+  $('#sim').onclick=simulate;
+  $('#v-radar').querySelectorAll('[data-notify]').forEach(b=>b.onclick=()=>{const c=cs.find(x=>x.k===b.dataset.notify);c.ts.forEach(t=>saveTicket({...t,status:'In Progress',replies:[...(t.replies||[]),{by:'IT (incident update)',tag:'incident',text:'We know about this issue and are fixing it. No need to raise more tickets. We will update you here.',at:Date.now()}]}));toast('Update sent to '+c.ts.length+' people')});
+  $('#v-radar').querySelectorAll('[data-fixall]').forEach(b=>b.onclick=()=>{const c=cs.find(x=>x.k===b.dataset.fixall);c.ts.forEach(t=>saveTicket({...t,status:'Resolved',replies:[...(t.replies||[]),{by:'IT (incident update)',text:'The issue is fixed. Please try again.',at:Date.now()}]}));toast('Incident resolved for '+c.ts.length+' people');confetti()});
+}
+function simulate(){
+  const msgs=[['priya','VPN connect aagala!! client call in 10 mins','frustrated','Tanglish','VPN is not connecting!! Client call in 10 minutes'],['karthik','VPN keeps failing, cannot reach CRM','frustrated','English',''],['meena','VPN not working, I am worried about payroll deadline','anxious','English',''],['priya','VPN error 809 again','angry','English',''],['karthik','वीपीएन नहीं चल रहा','confused','Hindi','VPN is not working'],['meena','VPN disconnected and won’t reconnect','calm','English',''],['karthik','Is VPN down for everyone?','confused','English',''],['meena','VPN timeout, can’t open shared drive','frustrated','English','']];
+  const n=Date.now();
+  msgs.forEach(([u,m,e,l,tr],i)=>saveTicket({id:'TKT-'+(5000+Math.floor(Math.random()*4000)),userId:u,userName:USERS.find(x=>x.id===u).name,title:'VPN not connecting',category:'Network',team:'Network',priority:'P1',priority_reason:'Many people affected at once.',emotion:e,urgency_clues:i===0?['⏰ client call in 10 min']:[],message:m,language:l,english_translation:tr,english_summary:'VPN connection failure reported.',steps:KB[0].steps,status:'Open',createdAt:n-i*90000,replies:[],confidence:.9,issue_signature:'vpn_failure'}));
+  toast('8 VPN reports created');
+}
+
+/* confetti */
+function confetti(){const c=document.createElement('canvas');c.className='confetti';document.body.appendChild(c);c.width=innerWidth;c.height=innerHeight;const x=c.getContext('2d');const cols=['#22D3EE','#8B5CF6','#EC4899','#F5B85A','#34D399'];
+ const ps=Array.from({length:120},()=>({x:innerWidth/2,y:innerHeight*.6,vx:(Math.random()-.5)*12,vy:-Math.random()*14-4,s:Math.random()*6+3,c:cols[Math.floor(Math.random()*5)]}));let f=0;
+ (function tick(){x.clearRect(0,0,c.width,c.height);ps.forEach(p=>{p.vy+=.4;p.x+=p.vx;p.y+=p.vy;x.fillStyle=p.c;x.fillRect(p.x,p.y,p.s,p.s)});if(++f<90)requestAnimationFrame(tick);else c.remove()})()}
+
+/* ================= start ================= */
+renderLogin();
+const saved=store.get('kural_user');
+boot();
+if(saved&&USERS.some(u=>u.id===saved))login(saved);
+setInterval(()=>{if(me&&view!=='help')renderAll()},30000);
+</script>
